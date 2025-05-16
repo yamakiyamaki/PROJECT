@@ -1,0 +1,4 @@
+flask
+transformers
+num2words
+accelerate

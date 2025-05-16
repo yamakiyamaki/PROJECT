@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <title>Three.js - Load OBJ Model</title>
+  <style>
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+    }
+
+    #c {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+  </style>
+</head>
+
+<body>
+  <script async src="https://unpkg.com/es-module-shims@1.3.6/dist/es-module-shims.js"></script>
+  <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.172.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.172.0/examples/jsm/"
+        }
+      }
+    </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { MTLLoader } from 'three/addons/loaders/MTLLoader.js';
+
+
+    // Scene & Renderer
+    const scene = new THREE.Scene();
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    
+
+
+
+    // Camera
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(5, 5, 5);
+    camera.lookAt(0, 0, 0);
+
+    // Controls
+    const OBcontrol = new OrbitControls(camera, renderer.domElement);
+
+    // Lighting
+    // const light = new THREE.DirectionalLight(0xffffff, 1);
+    // light.position.set(10, 10, 10);
+    // scene.add(light);
+    // // Ambient Light
+    // const ambientLight = new THREE.AmbientLight(0x404040, 1.); // Soft white light
+    // scene.add(ambientLight);
+
+    // Add a stronger ambient light
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+    scene.add(ambientLight);
+
+    // Add a directional light with shadows
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
+    directionalLight.position.set(5, 10, 7.5);
+    scene.add(directionalLight);
+
+    // // Optional: Add helper to see light direction
+    // const helper = new THREE.DirectionalLightHelper(directionalLight);
+    // scene.add(helper);
+
+
+
+    // Cross Markers
+    function mark_closs(x, y, z) {
+      const material = new THREE.LineBasicMaterial({ color: 0x808080 });
+      const points = [new THREE.Vector3(-0.5, 0, 0), new THREE.Vector3(0.5, 0, 0)];
+      const geometry = new THREE.BufferGeometry().setFromPoints(points);
+      const line_x = new THREE.Line(geometry, material);
+      const line_y = new THREE.Line(geometry, material);
+      line_x.position.set(x, y, z);
+      line_y.position.set(x, y, z);
+      line_y.rotation.y = Math.PI / 2;
+      scene.add(line_x);
+      scene.add(line_y);
+    }
+
+    function set_cross() {
+      const y = 0;
+      for (let x = -5; x < 5; x += 1) {
+        for (let z = -5; z < 5; z += 1) {
+          mark_closs(x, y, z);
+        }
+      }
+    }
+
+    // Test shape
+    const mat_red = new THREE.MeshStandardMaterial({ color: 0xff0000 }); // red
+    const boxG = new THREE.BoxGeometry(0.5, 0.05, 0.5);
+    const boxM = new THREE.Mesh(boxG, mat_red);
+    boxM.position.set(0, 0.5, 0);
+    // scene.add(boxM)
+
+
+    // // Load OBJ model
+    // const loader = new OBJLoader();
+    // loader.load(
+    //   'hair_test.obj', // ✅ Replace with your actual path
+    //   function (object) {
+    //     object.position.set(0, 3, 0);
+    //     scene.add(object);
+    //   },
+    //   function (xhr) {
+    //     console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+    //   },
+    //   function (error) {
+    //     console.error('An error happened:', error);
+    //   }
+    // );
+
+    // // Load .glb model
+    // const loader_glb = new GLTFLoader();
+    // loader_glb.load('tatsuki_faceModel.glb', function (gltf) {
+    //   gltf.scene.position.set(0, 1.5, 0);
+    //   scene.add(gltf.scene);
+    // }, undefined, function (error) {
+    //   console.error('Error loading GLB:', error);
+    // });
+
+    // Load .mtl model
+    const mtlLoader = new MTLLoader();
+    mtlLoader.setPath('CatModel/'); // Path to your model folder
+    mtlLoader.load('cat.mtl', (materials) => {
+      materials.preload();
+      const objLoader = new OBJLoader();
+      objLoader.setMaterials(materials);
+      objLoader.setPath('CatModel/');
+      objLoader.load('cat.obj', (object) => {
+        object.position.set(0, 0, 0);  // Move cat here (x, y, z)
+        object.scale.set(0.05, 0.05, 0.05); // Optional: scale down if it's too big
+        object.rotation.x = -Math.PI / 2; // Optional: rotate 90 degrees around Y-axis
+        scene.add(object);
+      });
+    });
+
+    // Render loop
+    function render() {
+      requestAnimationFrame(render);
+      set_cross();
+      renderer.render(scene, camera);
+    }
+
+    render();
+  </script>
+</body>
+
+</html>
