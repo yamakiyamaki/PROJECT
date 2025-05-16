@@ -13,16 +13,28 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
 pip install -r requirements.txt
 ```
 
-# How to run
-conda activate projectEnv
-In a terminal, `python app.py`
-In another terminal, `python main.py`
-Access here: http://10.1.4.56:5000/
-
 # How to add library
 !! write library name in requirements.txt first.
 conda activate projectEnv
 pip install -r requirements.txt
+
+
+# How to run
+### easy way with .sh
+conda activate projectEnv
+In a terminal, `./execute.sh`
+
+### manualy
+conda activate projectEnv
+In a terminal, `python app.py`
+In another terminal, `python main.py`
+Access here: http://10.1.4.56:5000/ #! if you are in another machin you need to access different url shown on terminal(upper one)
+
+### Check in HMD
+Open hotspot in the workstation.
+Connect another device to the hotspot
+run ./execute.sh
+Access http://161.3.140.22:5000 by smartphone or HMD. This address is shown in the treminal(lower one of two url)
 
 # ToDo
 Fine tune model to answer kid's mathematical question. Or choose another model. Maybe not VLM. 
