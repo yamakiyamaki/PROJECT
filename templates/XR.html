@@ -62,8 +62,6 @@
     // image.position.set(0, 1, 1);
     // scene.add(image);
 
-
-
     
     // PerspectiveCamera
     var aspect = window.innerWidth / window.innerHeight;
@@ -74,16 +72,21 @@
     const controls = new OrbitControls(camera, renderer.domElement);
 
 
-    // light
-    const light = new THREE.DirectionalLight(0xffffff, 1);
-    light.position.set(0, 50, 50);
-    scene.add(light);
+    // Add a stronger ambient light
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+    scene.add(ambientLight);
 
-    // materials
-    const mat = new THREE.MeshStandardMaterial({ color: 0x505050 }); // dark gray color
-    const geom = new THREE.CylinderGeometry(2.5, 6, 7, 10);
-    const part = new THREE.Mesh(geom, mat);
-    scene.add(part)
+    // Add a directional light with shadows
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
+    directionalLight.position.set(5, 10, 7.5);
+    scene.add(directionalLight);
+
+    // Test shape
+    const mat_red = new THREE.MeshStandardMaterial({ color: 0xff0000 }); // red
+    const boxG = new THREE.BoxGeometry(1, 1, 1);
+    const boxM = new THREE.Mesh(boxG, mat_red);
+    boxM.position.set(3, 0, 3);
+    scene.add(boxM);
 
     function mark_closs(x, y, z) {
       const material = new THREE.LineBasicMaterial({ color: 0x808080 });
@@ -103,7 +106,7 @@
     }
     function set_cross() {
       const y = 0;
-      for (let x = -5; x < 5; x += 1) {
+      for (let x = -5; x < 5; x += 0.1) {
         for (let z = -5; z < 5; z += 1) {
           mark_closs(x, y, z);
         }
@@ -123,7 +126,7 @@
       renderer.render(scene, camera);
 
     };
-    renderer.setAnimationLoop(render);//vr
+    renderer.setAnimationLoop(render);//vr, mr
     render();
 
 
