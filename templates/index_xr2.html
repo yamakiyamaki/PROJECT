@@ -34,6 +34,10 @@
   <script type="module">
     import * as THREE from "three";
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { VRButton } from 'three/addons/webxr/VRButton.js';//vr
+    import { XRButton } from 'three/addons/webxr/XRButton.js';//vr
+    import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js';//mr
+
 
     // Scene setup
     const scene = new THREE.Scene();
@@ -43,6 +47,16 @@
 
     // Set white background using renderer
     renderer.setClearColor(0xffffff, 1);  // 0xffffff = white, 1 = fully opaque
+
+    renderer.xr.enabled = true;//vr
+    // document.body.appendChild(VRButton.createButton(renderer));//vr
+    document.body.appendChild(XRButton.createButton(renderer, {
+      'optionalFeatures': ['depth-sensing'],
+      'depthSensing': { 'usagePreference': ['gpu-optimized'], 'dataFormatPreference': [] }
+    }));//mr
+    // document.body.appendChild(XRButton.createButton(renderer));//mr
+
+
 
 
     // Camera

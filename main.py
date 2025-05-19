@@ -122,6 +122,6 @@ if __name__ == "__main__":
         # generate_scene()
         # generate_scene_js()
         # generate_dynamic_scene()
-        generate_chat_scene(screen_text=lines)
+        generate_chat_scene(screen_text=lines[0])
         print("scene.js updated")
         sleep(5)  # simulate periodic updates

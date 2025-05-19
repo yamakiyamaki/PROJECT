@@ -30,7 +30,7 @@ export default function(scene) {
             size: 0.2,
             height: 0.05
         });
-        const screenText_g = new TextGeometry(["The equation is like a picture of a person. ", "It says that the number is 1.0. It also says", " that the number is 0.0."], {
+        const screenText_g = new TextGeometry("The equation is like a picture of a person. ", {
             font: font,
             size: 0.2,
             height: 0.05

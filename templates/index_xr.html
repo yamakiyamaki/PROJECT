@@ -34,6 +34,9 @@
   <script type="module">
     import * as THREE from "three";
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { VRButton } from 'three/addons/webxr/VRButton.js';//vr
+    import { XRButton } from 'three/addons/webxr/XRButton.js';//vr
+    import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js';//mr
 
     // Scene setup
     const scene = new THREE.Scene();
@@ -45,10 +48,29 @@
     renderer.setClearColor(0xffffff, 1);  // 0xffffff = white, 1 = fully opaque
 
 
+    renderer.xr.enabled = true;//vr
+    // document.body.appendChild(VRButton.createButton(renderer));//vr
+    document.body.appendChild(XRButton.createButton(renderer, {
+      'optionalFeatures': ['depth-sensing'],
+      'depthSensing': { 'usagePreference': ['gpu-optimized'], 'dataFormatPreference': [] }
+    }));//mr
+    // document.body.appendChild(XRButton.createButton(renderer));//mr
+
+
+    // // show image
+    // var geometry = new THREE.BoxGeometry(0, 2, 1);
+    // const textureLoader = new THREE.TextureLoader();
+    // const texture = textureLoader.load("https://upload.wikimedia.org/wikipedia/commons/thumb/b/bb/Gorille_des_plaines_de_l%27ouest_%C3%A0_l%27Espace_Zoologique.jpg/440px-Gorille_des_plaines_de_l%27ouest_%C3%A0_l%27Espace_Zoologique.jpg");
+    // const material = new THREE.MeshBasicMaterial({ map: texture });
+    // var image = new THREE.Mesh(geometry, material);
+    // image.position.set(0, 1, 1);
+    // scene.add(image);
+
+
     // Camera
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(5, 5, 5);
-    camera.lookAt(0, 0, 0);
+    camera.position.set(0, 1.6, -3);
+    camera.lookAt(0, 1.6, 0);
 
     // Controls
     const OBcontrol = new OrbitControls(camera, renderer.domElement);
@@ -115,9 +137,10 @@
 
     function animate() {
       requestAnimationFrame(animate);
-      
+
       renderer.render(scene, camera);
     }
+    renderer.setAnimationLoop(animate); // mr
     animate();
   </script>
 </body>
