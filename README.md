@@ -13,6 +13,8 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
 pip install -r requirements.txt
 ```
 
+
+
 # How to add library
 !! write library name in requirements.txt first.
 conda activate projectEnv
@@ -31,6 +33,14 @@ In another terminal, `python main.py`
 Access here: http://10.1.4.56:5000/ #! if you are in another machin you need to access different url shown on terminal(upper one)
 
 ### Check in HMD
+### build
+openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 1 -nodes
+- FR 
+- Auvergne-Rhône-Alpes 
+- Saint-Étienne
+
+
+### run
 Open hotspot in the workstation.
 Connect another device to the hotspot
 run ./execute.sh
@@ -53,15 +63,7 @@ cd build/
 make -j 24
 
 ### How to run
-cd build/bin/
-ll
-check available execution
-./llama-server
-./llama-server --help
-./llama-server -m ../../models/
-./llama-server -m ../../../models/Qwen2.5-VL-7B-Instruct-Q8_0.gguf
-[hugging face ggml-org](https://huggingface.co/ggml-org) --> download model from here and move it to TY/models
---> Error: Multimodal is not supported, So use next command
+cd llama.cpp/build/bin/
 ./llama-server -hf ggml-org/Qwen2.5-VL-7B-Instruct-GGUF
 hf: hugging face
 [Pre quantized model list](https://github.com/ggml-org/llama.cpp/blob/master/docs/multimodal.md) --> We just need to use listed command
