@@ -12,13 +12,13 @@
             align-items: center;
             gap: 20px;
             padding: 20px;
-            background-color: #f0f0f0;
+            background-color: #e20a0a;
         }
         .controls, .io-areas {
             display: flex;
             gap: 10px;
             align-items: center;
-            background-color: #fff;
+            background-color: #111ed8;
             padding: 15px;
             border-radius: 8px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
@@ -31,15 +31,15 @@
             width: 300px;
             height: 80px;
             padding: 8px;
-            border: 1px solid #ccc;
+            border: 1px solid #000000;
             border-radius: 4px;
             font-size: 14px;
         }
         #videoFeed {
             width: 480px;
             height: 360px;
-            border: 2px solid #333;
-            background-color: #000;
+            border: 2px solid #d0d30e;
+            background-color: #3be719;
             border-radius: 8px;
         }
         #startButton {
@@ -62,7 +62,7 @@
         select {
             padding: 8px;
             border-radius: 4px;
-            border: 1px solid #ccc;
+            border: 2px solid #d40303;
         }
         .hidden {
             display: none;
@@ -88,6 +88,16 @@
         <div>
             <label for="responseText">Response:</label><br>
             <textarea id="responseText" style="height: 2em; width: 40em" name="Response" readonly placeholder="Server response will appear here..."></textarea>
+        </div>
+        <div>
+            <label for="responseText2">Response2:</label><br>
+            <select id="responseText2" name="Interval between 2 requests">
+                <option value="100">100ms</option>
+                <option value="250">250ms</option>
+                <option value="500" selected>500ms</option>
+                <option value="1000">1s</option>
+                <option value="2000">2s</option>
+            </select>
         </div>
     </div>
 
