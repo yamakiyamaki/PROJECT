@@ -2,5 +2,5 @@
 
 # echo "Access here: http://10.1.4.56:5000/"
 python app.py
-python main.py
+#python main.py
 
