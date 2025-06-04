@@ -1,193 +1,510 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
-  <meta charset="utf-8" />
-  <title>Three.js - Load OBJ Model</title>
-  <style>
-    html,
-    body {
-      width: 100%;
-      height: 100%;
-      margin: 0;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera Interaction App</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            padding: 20px;
+            background-color: #e20a0a;
+        }
 
-    #c {
-      width: 100%;
-      height: 100%;
-      display: block;
+        .controls,
+        .io-areas {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            background-color: #111ed8;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .io-areas {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        textarea {
+            width: 300px;
+            height: 80px;
+            padding: 8px;
+            border: 1px solid #000000;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        #videoFeed {
+            width: 480px;
+            height: 360px;
+            border: 2px solid #d0d30e;
+            background-color: #3be719;
+            border-radius: 8px;
+        }
+
+        #startButton {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            color: rgb(247, 243, 243);
+        }
+
+        #startButton.start {
+            background-color: #28a745;
+            /* Green */
+        }
+
+        #startButton.stop {
+            background-color: #dc3545;
+            /* Red */
+        }
+
+        label {
+            font-weight: bold;
+        }
+
+        select {
+            padding: 8px;
+            border-radius: 4px;
+            border: 2px solid #d40303;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            #container {
+                flex-direction: column;
+                height: auto;
+            }
+
+            #ui-container,
+            #threejs-container {
+                width: 100% !important;
+            }
+
+            #videoFeed {
+                width: 100% !important;
+                height: auto !important;
+            }
+
+            textarea {
+                width: 100% !important;
+            }
+
+            #threejs-container canvas {
+                width: 100% !important;
+                height: auto !important;
+            }
+        }
+    </style>
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.172.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.172.0/examples/jsm/"
+      }
     }
-  </style>
+  </script>
+
 </head>
 
 <body>
-  <script async src="https://unpkg.com/es-module-shims@1.3.6/dist/es-module-shims.js"></script>
-  <script type="importmap">
-      {
-        "imports": {
-          "three": "https://unpkg.com/three@0.172.0/build/three.module.js",
-          "three/addons/": "https://unpkg.com/three@0.172.0/examples/jsm/"
+
+    <h1>VLM and Three.js</h1>
+    <div id="container" style="display: flex; width: 100%; height: 80vh; gap: 20px;">
+        <div id="ui-container" style="flex: 1; display: flex; flex-direction: column; gap: 15px;">
+            <!-- <div id="ui-container" class="hidden"> -->
+            <!-- <video id="videoFeed" autoplay playsinline style="width: 40em; height: auto; border-radius: 8px;"></video> -->
+            <video id="videoFeed" autoplay playsinline style="width: 100%; height: auto; border-radius: 8px;"></video>
+            <canvas id="canvas" class="hidden"></canvas> <!-- For capturing frames -->
+
+            <div class="io-areas">
+                <div class="hidden">
+                    <label for="baseURL">Base API:</label><br>
+                    <!-- <input id="baseURL" name="Instruction" value="http://127.0.0.1:8080"></textarea> -->
+                    <!-- <input id="baseURL" name="Instruction" value="http://161.3.140.22:8080"></textarea> -->
+                    <input id="baseURL" name="Instruction" value="https://161.3.140.22:8443"></textarea>
+
+                </div>
+                <div>
+                    <button id="startButton" class="start">Capture an image</button>
+                    <label for="instructionText">Instruction:</label><br>
+                    <textarea id="instructionText" style="height: 2em; width: 95%" name="Instruction"></textarea>
+                </div>
+                <div>
+                    <label for="responseText">Response:</label><br>
+                    <textarea id="responseText" style="height: 10em; width: 95%" name="Response" readonly
+                        placeholder="Server response will appear here..."></textarea>
+                </div>
+                <div class="hidden">
+                    <label for="intervalSelect">Interval between 2 requests:</label>
+                    <select id="intervalSelect" name="Interval between 2 requests">
+                        <option value="100">100ms</option>
+                        <option value="250">250ms</option>
+                        <option value="500" selected>500ms</option>
+                        <option value="1000">1s</option>
+                        <option value="2000">2s</option>
+                    </select>
+
+                </div>
+            </div>
+        </div>
+
+
+        <div id="threejs-container" style="width: 50%; border: 2px solid black;">
+            <!-- <div id="threejs-container" style="flex: 1; border: 2px solid black; min-height: 300px;"> -->
+            <script type="module">
+                import * as THREE from "three";
+                import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+                import { VRButton } from 'three/addons/webxr/VRButton.js';//vr
+                import { XRButton } from 'three/addons/webxr/XRButton.js';//vr
+                import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js';//mr
+                import { MTLLoader } from 'https://unpkg.com/three@0.172.0/examples/jsm/loaders/MTLLoader.js';
+                import { OBJLoader } from 'https://unpkg.com/three@0.172.0/examples/jsm/loaders/OBJLoader.js';
+                import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+                import { FontLoader } from 'three/addons/loaders/FontLoader.js';
+                import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
+
+                // Scene setup
+                const scene = new THREE.Scene();
+                const renderer = new THREE.WebGLRenderer();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                document.body.appendChild(renderer.domElement);
+
+                // Set white background using renderer
+                renderer.setClearColor(0xffffff, 1);  // 0xffffff = white, 1 = fully opaque
+
+
+                renderer.xr.enabled = true;//vr
+                // document.body.appendChild(VRButton.createButton(renderer));//vr
+                document.body.appendChild(XRButton.createButton(renderer, {
+                    'optionalFeatures': ['depth-sensing'],
+                    'depthSensing': { 'usagePreference': ['gpu-optimized'], 'dataFormatPreference': [] }
+                }));//mr
+                // document.body.appendChild(XRButton.createButton(renderer));//mr
+
+
+                // // show image
+                // var geometry = new THREE.BoxGeometry(0, 2, 1);
+                // const textureLoader = new THREE.TextureLoader();
+                // const texture = textureLoader.load("https://upload.wikimedia.org/wikipedia/commons/thumb/b/bb/Gorille_des_plaines_de_l%27ouest_%C3%A0_l%27Espace_Zoologique.jpg/440px-Gorille_des_plaines_de_l%27ouest_%C3%A0_l%27Espace_Zoologique.jpg");
+                // const material = new THREE.MeshBasicMaterial({ map: texture });
+                // var image = new THREE.Mesh(geometry, material);
+                // image.position.set(0, 1, 1);
+                // scene.add(image);
+
+
+                // Camera
+                const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                camera.position.set(3, 1.6, 3);
+                camera.lookAt(0, 1.6, 0);
+
+                // Controls
+                const OBcontrol = new OrbitControls(camera, renderer.domElement);
+
+                // Add a stronger ambient light
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+                scene.add(ambientLight);
+
+                // Add a directional light with shadows
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
+                directionalLight.position.set(5, 10, 7.5);
+                scene.add(directionalLight);
+
+                // World
+                const world = new THREE.Group();  // Master group for scaling
+                scene.add(world);
+
+                // Screen
+                const geometry = new THREE.BoxGeometry(6, 3, 0.1);
+                const material = new THREE.MeshStandardMaterial({ color: 0x5555ff });
+                const monitor = new THREE.Mesh(geometry, material);
+                monitor.position.set(0, 3, 0);
+                world.add(monitor);
+
+                // Chat box
+                const chatBox_g = new THREE.BoxGeometry(3, 1, 0.1);
+                const chatBox_m = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
+                const chatBox = new THREE.Mesh(chatBox_g, chatBox_m);
+                chatBox.position.set(0, 1, 1);
+                world.add(chatBox);
+
+                // AI teacher
+                const mtlLoader = new MTLLoader();
+                mtlLoader.setPath('/static/CatModel/');
+                mtlLoader.load('cat.mtl', (materials) => {
+                    materials.preload();
+                    const objLoader = new OBJLoader();
+                    objLoader.setMaterials(materials);
+                    objLoader.setPath('/static/CatModel/');
+                    objLoader.load('cat.obj', (object) => {
+                        object.position.set(2, 0, 0);
+                        object.scale.set(0.05, 0.05, 0.05);
+                        object.rotation.x = -Math.PI / 2;
+                        world.add(object);
+                        console.log("Cat model added");
+                    });
+                });
+
+
+                // Font
+                let chat_text = "Trust me kid."
+                let screen_text = "Equation is here"
+                const loader = new FontLoader();
+                loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function (font) {
+                    const chatText_g = new TextGeometry(chat_text, {
+                        font: font,
+                        size: 0.2,
+                        height: 0.05
+                    });
+                    const screenText_g = new TextGeometry(screen_text, {
+                        font: font,
+                        size: 0.2,
+                        height: 0.05
+                    });
+                    const textMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
+                    const chatText = new THREE.Mesh(chatText_g, textMaterial);
+                    chatText.position.set(-1.3, 1, 1.1);
+                    world.add(chatText);
+
+                    const screenText = new THREE.Mesh(screenText_g, textMaterial);
+                    screenText.position.set(-2.5, 4, 0.1);
+                    world.add(screenText);
+                });
+
+
+                // Cross Markers
+                function mark_closs(x, y, z) {
+                    const material = new THREE.LineBasicMaterial({ color: 0x808080 });
+                    const points = [new THREE.Vector3(-0.5, 0, 0), new THREE.Vector3(0.5, 0, 0)];
+                    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+                    const line_x = new THREE.Line(geometry, material);
+                    const line_y = new THREE.Line(geometry, material);
+                    line_x.position.set(x, y, z);
+                    line_y.position.set(x, y, z);
+                    line_y.rotation.y = Math.PI / 2;
+                    world.add(line_x);
+                    world.add(line_y);
+                }
+                function set_cross() {
+                    const y = 0;
+                    for (let x = -5; x < 5; x += 1) {
+                        for (let z = -5; z < 5; z += 1) {
+                            mark_closs(x, y, z);
+                        }
+                    }
+                }
+                // set_cross();
+
+                // Scale world to fit MR view
+                world.scale.set(0.3, 0.3, 0.3); // Shrink to 10%
+                world.position.set(0, 0, -3.0);
+
+
+
+                function animate() {
+                    requestAnimationFrame(animate);
+
+                    renderer.render(scene, camera);
+                }
+                renderer.setAnimationLoop(animate); // mr
+                animate();
+            </script>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('videoFeed');
+        const canvas = document.getElementById('canvas');
+        const baseURL = document.getElementById('baseURL');
+        const instructionText = document.getElementById('instructionText');
+        const responseText = document.getElementById('responseText');
+        const intervalSelect = document.getElementById('intervalSelect');
+        const startButton = document.getElementById('startButton');
+
+        instructionText.value = "Explain this equation"; // default instruction
+
+        let stream;
+        let intervalId;
+        let isProcessing = false;
+
+        // Returns response text (string)
+        async function sendChatCompletionRequest(instruction, imageBase64URL) {
+            const response = await fetch(`${baseURL.value}/v1/chat/completions`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    max_tokens: 100,
+                    messages: [
+                        {
+                            role: 'user', content: [
+                                { type: 'text', text: instruction },
+                                {
+                                    type: 'image_url', image_url: {
+                                        url: imageBase64URL,
+                                    }
+                                }
+                            ]
+                        },
+                    ]
+                })
+            });
+            if (!response.ok) {
+                const errorData = await response.text();
+                return `Server error: ${response.status} - ${errorData}`;
+            }
+            const data = await response.json();
+            return data.choices[0].message.content;
         }
-      }
+
+        // 1. Ask for camera permission on load
+        async function initCamera() {
+            try {
+                // Get data from camera and stream it on the page. 
+                stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                video.srcObject = stream;
+
+                responseText.value = "Camera access granted. Ready to start.";
+            } catch (err) {
+                console.error("Error accessing camera:", err);
+                responseText.value = `Error accessing camera: ${err.name} - ${err.message}. Please ensure permissions are granted and you are on HTTPS or localhost.`;
+                alert(`Error accessing camera: ${err.name}. Make sure you've granted permission and are on HTTPS or localhost.`);
+            }
+        }
+
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+                responseText.value = "Camera stream stopped.";
+            }
+        }
+
+
+        function captureImage() {
+            if (!stream || !video.videoWidth) {
+                console.warn("Video stream not ready for capture.");
+                return null;
+            }
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            return canvas.toDataURL('image/jpeg', 0.8); // Use JPEG for smaller size, 0.8 quality
+        }
+
+        async function sendData() {
+            if (!isProcessing) return; // Ensure we don't have overlapping requests if processing takes longer than interval
+
+            const instruction = instructionText.value;
+            const imageBase64URL = captureImage();
+
+            if (!imageBase64URL) {
+                responseText.value = "Failed to capture image. Stream might not be active.";
+                // Optionally stop processing if image capture fails consistently
+                // handleStop();
+                return;
+            }
+
+            const payload = {
+                instruction: instruction,
+                imageBase64URL: imageBase64URL
+            };
+
+            try {
+                const response = await sendChatCompletionRequest(payload.instruction, payload.imageBase64URL);
+                responseText.value = response;
+            } catch (error) {
+                console.error('Error sending data:', error);
+                responseText.value = `Error: ${error.message}`;
+            }
+        }
+
+        function handleStart() { // async: wait until await is done.
+            // initCamera(); 
+
+            if (!stream) {
+                responseText.value = "Camera not available. Cannot start.";
+                alert("Camera not available. Please grant permission first.");
+                return;
+            }
+            isProcessing = true;
+            startButton.textContent = "Stop";
+            startButton.classList.remove('start');
+            startButton.classList.add('stop');
+
+            instructionText.disabled = true;
+            intervalSelect.disabled = true;
+
+            responseText.value = "Image captured!!!";
+
+            const intervalMs = parseInt(intervalSelect.value, 10);
+
+            // Initial immediate call
+            sendData();
+
+            // Then set interval
+            // intervalId = setInterval(sendData, intervalMs);
+        }
+
+        function handleStop() {
+            stopCamera();
+
+            isProcessing = false;
+            if (intervalId) {
+                clearInterval(intervalId);
+                intervalId = null;
+            }
+            startButton.textContent = "Capture an image";
+            startButton.classList.remove('stop');
+            startButton.classList.add('start');
+
+            instructionText.disabled = false;
+            intervalSelect.disabled = false;
+            if (responseText.value.startsWith("Image captured!!!")) {
+                responseText.value = "I am thinking...";
+            }
+        }
+
+       
+
+        startButton.addEventListener('click', () => {
+            // if (isProcessing) {
+            //     handleStop();
+            // } else {
+            //     handleStart();
+            // }
+            handleStart();
+            handleStop();
+        });
+
+        // Initialize camera when the page loads
+        window.addEventListener('DOMContentLoaded', initCamera);
+
+        // Optional: Stop stream when page is closed/navigated away to release camera
+        window.addEventListener('beforeunload', () => {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            if (intervalId) {
+                clearInterval(intervalId);
+            }
+        });
+
     </script>
-
-  <script type="module">
-    import * as THREE from "three";
-    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-    import { VRButton } from 'three/addons/webxr/VRButton.js';//vr
-    import { XRButton } from 'three/addons/webxr/XRButton.js';//vr
-    import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js';//mr
-    import { MTLLoader } from 'https://unpkg.com/three@0.172.0/examples/jsm/loaders/MTLLoader.js';
-    import { OBJLoader } from 'https://unpkg.com/three@0.172.0/examples/jsm/loaders/OBJLoader.js';
-    import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
-    import { FontLoader } from 'three/addons/loaders/FontLoader.js';
-    import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
-
-    // Scene setup
-    const scene = new THREE.Scene();
-    const renderer = new THREE.WebGLRenderer();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement);
-
-    // Set white background using renderer
-    renderer.setClearColor(0xffffff, 1);  // 0xffffff = white, 1 = fully opaque
-
-
-    renderer.xr.enabled = true;//vr
-    // document.body.appendChild(VRButton.createButton(renderer));//vr
-    document.body.appendChild(XRButton.createButton(renderer, {
-      'optionalFeatures': ['depth-sensing'],
-      'depthSensing': { 'usagePreference': ['gpu-optimized'], 'dataFormatPreference': [] }
-    }));//mr
-    // document.body.appendChild(XRButton.createButton(renderer));//mr
-
-
-    // // show image
-    // var geometry = new THREE.BoxGeometry(0, 2, 1);
-    // const textureLoader = new THREE.TextureLoader();
-    // const texture = textureLoader.load("https://upload.wikimedia.org/wikipedia/commons/thumb/b/bb/Gorille_des_plaines_de_l%27ouest_%C3%A0_l%27Espace_Zoologique.jpg/440px-Gorille_des_plaines_de_l%27ouest_%C3%A0_l%27Espace_Zoologique.jpg");
-    // const material = new THREE.MeshBasicMaterial({ map: texture });
-    // var image = new THREE.Mesh(geometry, material);
-    // image.position.set(0, 1, 1);
-    // scene.add(image);
-
-
-    // Camera
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(3, 1.6, 3);
-    camera.lookAt(0, 1.6, 0);
-
-    // Controls
-    const OBcontrol = new OrbitControls(camera, renderer.domElement);
-
-    // Add a stronger ambient light
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
-    scene.add(ambientLight);
-
-    // Add a directional light with shadows
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
-    directionalLight.position.set(5, 10, 7.5);
-    scene.add(directionalLight);
-
-    // World
-    const world = new THREE.Group();  // Master group for scaling
-    scene.add(world);
-
-    // Screen
-    const geometry = new THREE.BoxGeometry(6, 3, 0.1);
-    const material = new THREE.MeshStandardMaterial({ color: 0x5555ff });
-    const monitor = new THREE.Mesh(geometry, material);
-    monitor.position.set(0, 3, 0);
-    world.add(monitor);
-
-    // Chat box
-    const chatBox_g = new THREE.BoxGeometry(3, 1, 0.1);
-    const chatBox_m = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
-    const chatBox = new THREE.Mesh(chatBox_g, chatBox_m);
-    chatBox.position.set(0, 1, 1);
-    world.add(chatBox);
-
-    // AI teacher
-    const mtlLoader = new MTLLoader();
-    mtlLoader.setPath('/static/CatModel/');
-    mtlLoader.load('cat.mtl', (materials) => {
-        materials.preload();
-        const objLoader = new OBJLoader();
-        objLoader.setMaterials(materials);
-        objLoader.setPath('/static/CatModel/');
-        objLoader.load('cat.obj', (object) => {
-            object.position.set(2, 0, 0);
-            object.scale.set(0.05, 0.05, 0.05);
-            object.rotation.x = -Math.PI / 2;
-            world.add(object);
-            console.log("Cat model added");
-        });
-    });
-
-
-    // Font
-    let chat_text="Trust me kid."
-    let screen_text="Equation is here"
-    const loader = new FontLoader();
-    loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function (font) {
-        const chatText_g = new TextGeometry(chat_text, {
-            font: font,
-            size: 0.2,
-            height: 0.05
-        });
-        const screenText_g = new TextGeometry(screen_text, {
-            font: font,
-            size: 0.2,
-            height: 0.05
-        });
-        const textMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
-        const chatText = new THREE.Mesh(chatText_g, textMaterial);
-        chatText.position.set(-1.3, 1, 1.1);
-        world.add(chatText);
-
-        const screenText = new THREE.Mesh(screenText_g, textMaterial);
-        screenText.position.set(-2.5, 4, 0.1);
-        world.add(screenText);
-    });
-
-
-    // Cross Markers
-    function mark_closs(x, y, z) {
-      const material = new THREE.LineBasicMaterial({ color: 0x808080 });
-      const points = [new THREE.Vector3(-0.5, 0, 0), new THREE.Vector3(0.5, 0, 0)];
-      const geometry = new THREE.BufferGeometry().setFromPoints(points);
-      const line_x = new THREE.Line(geometry, material);
-      const line_y = new THREE.Line(geometry, material);
-      line_x.position.set(x, y, z);
-      line_y.position.set(x, y, z);
-      line_y.rotation.y = Math.PI / 2;
-      world.add(line_x);
-      world.add(line_y);
-    }
-    function set_cross() {
-      const y = 0;
-      for (let x = -5; x < 5; x += 1) {
-        for (let z = -5; z < 5; z += 1) {
-          mark_closs(x, y, z);
-        }
-      }
-    }
-    set_cross();
-
-    // Scale world to fit MR view
-    world.scale.set(0.3, 0.3, 0.3); // Shrink to 10%
-    world.position.set(0, 0, -3.0);
-
-
-
-    function animate() {
-      requestAnimationFrame(animate);
-
-      renderer.render(scene, camera);
-    }
-    renderer.setAnimationLoop(animate); // mr
-    animate();
-  </script>
 </body>
 
 </html>
