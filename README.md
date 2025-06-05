@@ -24,14 +24,17 @@ pip install -r requirements.txt
 # How to run
 In terminal 1
 ```
+cd ~/llama-proxy-manual
 node proxy.js
 ```
 In terminal 2
 ```
+cd Documents/TY/llama.cpp/build/bin/
 ./llama-server -hf ggml-org/Qwen2.5-VL-3B-Instruct-GGUF --host 0.0.0.0 --port 8080
 ```
 In terminal 3
 ```
+cd Documents/TY/PROJECT/
 conda activate projectEnv
 ./execute.sh
 ```
