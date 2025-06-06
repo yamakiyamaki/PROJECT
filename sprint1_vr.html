@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>three.js webgl - buffergeometry - particles</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <style>
+        body {
+            margin: 0px;
+            overflow: hidden;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="container"></div>
+    <script type="x-shader/x-vertex" id="RGBVertexShader">
+
+        // vertex shader gets called once for each vertex.
+        uniform sampler2D tex; // take color from texture and put in tex
+        varying vec3 color;     
+
+        void main() {
+            color = texture2D ( tex, position.xy ).rgb; // position.xy: corrdinate in the texture
+            //color = texture2D ( tex, position.xy*vec2(10,10) ).rgb; // texture coordinate color
+            //vec4 mvPosition = modelViewMatrix * vec4(color.xyz-vec3(.5,.5,.5), 1.0);
+            //vec4 mvPosition = modelViewMatrix * vec4(color.xyz-vec3(.1,.5,.5), 1.0);
+            vec4 mvPosition = modelViewMatrix * vec4(color.xyz, 1.0);
+
+            //gl_PointSize = 10.0;
+            gl_PointSize = 3.0/(-mvPosition.z); // mvPosition: camera position
+            
+            //gl_Position = projectionMatrix * modelViewMatrix * vec4(color-vec3(.5,.5,.5), 1.0);
+            gl_Position = projectionMatrix * mvPosition;
+        }
+    </script>
+    <script type="x-shader/x-vertex" id="shadowRGBVertexShader">
+        uniform sampler2D tex; // take color from texture and put in tex
+        varying vec3 color;
+
+        void main() {
+            color = texture2D ( tex, position.xy ).rgb; // position.xy: corrdinate in the texture
+            vec4 mvPosition = modelViewMatrix * vec4(color.x, 0, color.z, 1.0);
+            gl_PointSize = 3.0/(-mvPosition.z); // mvPosition: camera position
+            gl_Position = projectionMatrix * mvPosition;
+        }
+    </script>
+
+
+    <script type="x-shader/x-vertex" id="CIExyYVertexShader">
+        uniform sampler2D tex; // take color from texture and put in tex
+        varying vec3 color;
+
+        // convert sRGB to CIEXYZ
+        vec3 linearRGBtoXYZ(vec3 rgb) {
+            const mat3 RGBtoXYZ = mat3(
+                0.4124, 0.3576, 0.1805,  // Row 1
+                0.2126, 0.7152, 0.0722,  // Row 2
+                0.0193, 0.1192, 0.9505   // Row 3
+            );
+            return RGBtoXYZ * rgb;
+        }
+
+        void main() {
+
+            color = texture2D ( tex, position.xy ).rgb; // position.xy: corrdinate in the texture
+            //color = texture2D ( tex, position.xy*vec2(10,10) ).rgb; // texture coordinate color
+
+            vec3 linearColor = pow(color, vec3(2.2)); // Convert from sRGB to linear RGB // Gamma correction 
+            vec3 color_xyz = linearRGBtoXYZ(linearColor); // Convert linear RGB to XYZ
+                        
+
+            // convert CIEXYZ to CIExyY
+            float sum_xyz = color_xyz.x + color_xyz.y + color_xyz.z;
+            vec3 color_xyY = vec3(color_xyz.x / sum_xyz, color_xyz.y / sum_xyz, color_xyz.y); // Convert XYZ to xyY
+
+            //vec4 mvPosition = modelViewMatrix * vec4(color_xyz.xyz, 1.0);
+            vec4 mvPosition = modelViewMatrix * vec4(color_xyY.xyz, 1.0);
+
+            gl_PointSize = 3.0/(-mvPosition.z); // mvPosition: camera position
+            gl_Position = projectionMatrix * mvPosition;
+        }
+    </script>
+    <script type="x-shader/x-vertex" id="shadowCIExyYVertexShader">
+        uniform sampler2D tex; // take color from texture and put in tex
+        varying vec3 color;
+
+        // convert sRGB to CIEXYZ
+        vec3 linearRGBtoXYZ(vec3 rgb) {
+            const mat3 RGBtoXYZ = mat3(
+                0.4124, 0.3576, 0.1805,  // Row 1
+                0.2126, 0.7152, 0.0722,  // Row 2
+                0.0193, 0.1192, 0.9505   // Row 3
+            );
+            return RGBtoXYZ * rgb;
+        }
+
+        void main() {
+            color = texture2D ( tex, position.xy ).rgb; // position.xy: corrdinate in the texture
+            vec3 linearColor = pow(color, vec3(2.2)); // Convert from sRGB to linear RGB // Gamma correction 
+            vec3 color_xyz = linearRGBtoXYZ(linearColor); // Convert linear RGB to XYZ
+
+            // convert CIEXYZ to CIExyY
+            float sum_xyz = color_xyz.x + color_xyz.y + color_xyz.z;
+            vec3 color_xyY = vec3(color_xyz.x / sum_xyz, color_xyz.y / sum_xyz, color_xyz.y); // Convert XYZ to xyY
+            vec4 mvPosition = modelViewMatrix * vec4(color_xyY.x, 0, color_xyY.z, 1.0);
+            gl_PointSize = 3.0/(-mvPosition.z); // mvPosition: camera position
+            gl_Position = projectionMatrix * mvPosition;
+        }
+    </script>
+
+
+    <script type="x-shader/x-vertex" id="CIELABVertexShader">
+        uniform sampler2D tex; // take color from texture and put in tex
+        varying vec3 color;
+
+        // convert sRGB to CIEXYZ
+        vec3 linearRGBtoXYZ(vec3 rgb) {
+            const mat3 RGBtoXYZ = mat3(
+                0.4124, 0.3576, 0.1805,  // Row 1
+                0.2126, 0.7152, 0.0722,  // Row 2
+                0.0193, 0.1192, 0.9505   // Row 3
+            );
+            return RGBtoXYZ * rgb;
+        }
+
+        // f
+        float f_xyz(float t) {
+            if (t > (6./29.)*(6./29.)*(6./29.)) {
+                return pow(t, 1.0 / 3.0);
+            } else {
+                return (1./3.) * t * (29./6.) * (29./6.) + 4./29.;
+            }
+        }
+
+        void main() {
+
+            color = texture2D ( tex, position.xy ).rgb; // position.xy: corrdinate in the texture
+
+            // convert sRGB to CIEXYZ
+            vec3 linearColor = pow(color, vec3(2.2)); // Convert from sRGB to linear RGB // Gamma correction 
+            vec3 color_xyz = linearRGBtoXYZ(linearColor); // Convert linear RGB to XYZ
+                        
+            // convert CIEXYZ to CIELAB
+            float Xn = 95.0489;// under D65 // !!!!Do not use const for float value!!!!
+            float Yn = 100.0;
+            float Zn = 108.8840;
+
+            //float L_star = 116.0 * f_xyz(color_xyz.y / Yn) - 16.0;
+            //float a_star = 500.0 * (f_xyz(color_xyz.x / Xn) - f_xyz(color_xyz.y / Yn));
+            //float b_star = 200.0 * (f_xyz(color_xyz.y / Yn) - f_xyz(color_xyz.z / Zn));
+            
+            // normalized
+            float L_star = (116.0 * f_xyz(color_xyz.y / Yn) - 16.0) * 0.1;
+            float a_star = (500.0 * (f_xyz(color_xyz.x / Xn) - f_xyz(color_xyz.y / Yn))) * -0.1;
+            float b_star = 200.0 * (f_xyz(color_xyz.y / Yn) - f_xyz(color_xyz.z / Zn)) * 0.1;
+
+            vec4 mvPosition = modelViewMatrix * vec4(L_star, a_star, b_star, 1.0); 
+            //vec4 mvPosition = modelViewMatrix * vec4(L_star, a_star, b_star, 1.0); //normalizing the position
+            gl_PointSize = 3.0/(-mvPosition.z); // mvPosition: camera position
+            gl_Position = projectionMatrix * mvPosition;
+        }
+    </script>
+    <script type="x-shader/x-vertex" id="shadowCIELABVertexShader">
+        uniform sampler2D tex; // take color from texture and put in tex
+        varying vec3 color;
+
+        // convert sRGB to CIEXYZ
+        vec3 linearRGBtoXYZ(vec3 rgb) {
+            const mat3 RGBtoXYZ = mat3(
+                0.4124, 0.3576, 0.1805,  // Row 1
+                0.2126, 0.7152, 0.0722,  // Row 2
+                0.0193, 0.1192, 0.9505   // Row 3
+            );
+            return RGBtoXYZ * rgb;
+        }
+
+        // f
+        float f_xyz(float t) {
+            if (t > (6./29.)*(6./29.)*(6./29.)) {
+                return pow(t, 1.0 / 3.0);
+            } else {
+                return (1./3.) * t * (29./6.) * (29./6.) + 4./29.;
+            }
+        }
+
+        void main() {
+
+            color = texture2D ( tex, position.xy ).rgb; // position.xy: corrdinate in the texture
+
+            // convert sRGB to CIEXYZ
+            vec3 linearColor = pow(color, vec3(2.2)); // Convert from sRGB to linear RGB // Gamma correction 
+            vec3 color_xyz = linearRGBtoXYZ(linearColor); // Convert linear RGB to XYZ
+                        
+            // convert CIEXYZ to CIELAB
+            float Xn = 95.0489;// under D65 // !!!!Do not use const for float value!!!!
+            float Yn = 100.0;
+            float Zn = 108.8840;
+
+            //float L_star = 116.0 * f_xyz(color_xyz.y / Yn) - 16.0;
+            //float a_star = 500.0 * (f_xyz(color_xyz.x / Xn) - f_xyz(color_xyz.y / Yn));
+            //float b_star = 200.0 * (f_xyz(color_xyz.y / Yn) - f_xyz(color_xyz.z / Zn));
+            
+            // normalized
+            float L_star = (116.0 * f_xyz(color_xyz.y / Yn) - 16.0) * 0.1;
+            float a_star = (500.0 * (f_xyz(color_xyz.x / Xn) - f_xyz(color_xyz.y / Yn))) * -0.1;
+            float b_star = 200.0 * (f_xyz(color_xyz.y / Yn) - f_xyz(color_xyz.z / Zn)) * 0.1;
+
+            vec4 mvPosition = modelViewMatrix * vec4(L_star, 0, b_star, 1.0);
+            gl_PointSize = 3.0/(-mvPosition.z); // mvPosition: camera position
+            gl_Position = projectionMatrix * mvPosition;
+        }
+    </script>
+
+    <script type="x-shader/x-fragment" id="RGBFragmentShader">
+        // For each pixel it will call your fragment shader asking you what color to make that pixel. 
+        // Your fragment shader has output a vec4 with the color it wants for that pixel.
+
+        varying vec3 color; // varying: accociate with vertex shader
+
+        void main() {
+            gl_FragColor.rgb = color;
+            gl_FragColor.a = 1.0;
+
+            // Change shape of point to sphere
+            float l = length( gl_PointCoord - vec2( 0.5, 0.5 ));
+            if ( l > 0.475 ) discard;// if I comment out this the shape will be square
+        }
+    </script>
+    <script type="x-shader/x-fragment" id="shadowFragmentShader">
+        varying vec3 color; // varying: accociate with vertex shader
+
+        void main() {
+            gl_FragColor.rgb = vec3(0.0, 0.0, 0.0);
+            gl_FragColor.a = 1.0;
+
+            // Change shape of point to sphere
+            float l = length( gl_PointCoord - vec2( 0.5, 0.5 ));
+            if ( l > 0.475 ) discard;// if I comment out this the shape will be square
+        }
+    </script>
+    <script type="x-shader/x-fragment" id="densityFragmentShader">
+        varying vec3 color; // varying: accociate with vertex shader
+
+        void main() {
+            gl_FragColor.rgb = color;
+            gl_FragColor.a = 0.3;
+
+            // Change shape of point to sphere
+            float l = length( gl_PointCoord - vec2( 0.5, 0.5 ));
+            if ( l > 0.475 ) discard;// if I comment out this the shape will be square
+        }
+    </script>
+
+    <script async src="https://unpkg.com/es-module-shims@1.3.6/dist/es-module-shims.js"></script>
+    <script type="importmap">
+        {
+        "imports": {
+            "three": "https://unpkg.com/three@0.172.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.172.0/examples/jsm/"
+        }
+        }
+    </script>
+
+    <script type="module">
+
+        ///////////////////////////////////////// TODO ///////////////////////////////////////////////
+        // 1: map color cloud /
+        // 2: load video /
+        // 3: show video in the virtual space /
+        // 4: show a color cloud of the video /
+        // 5: Use different color space, /
+        // 5.1:  interface that allows you to change the color space that is used for the cloud. /
+        // 6: Implement to VR /
+        // 7: Interecting with video window(pick up, move and resize geometry by hand controler, control video by gui)
+        // 8: Show shadow of the color cloud // use (x,y,z) = (r,0,b) /
+        // 9: Show the density of color cloud /
+
+
+
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import Stats from 'three/addons/libs/stats.module.js';
+        import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
+
+        import { HTMLMesh } from 'three/addons/interactive/HTMLMesh.js';//3D gui
+        import { InteractiveGroup } from 'three/addons/interactive/InteractiveGroup.js';//3D gui
+        import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js';//vr controller
+        import { VRButton } from 'three/addons/webxr/VRButton.js';//vr
+        import { XRButton } from 'three/addons/webxr/XRButton.js';//vr
+        
+
+
+        let stats, statsMesh;
+        let points, shadows;
+        var camera, controls, scene, renderer, container;
+        var plan;
+
+        // VIDEO AND THE ASSOCIATED TEXTURE
+        var plan, video, videoTexture;
+        var imageProcessing, imageProcessingMaterial;
+
+        // GUI
+        var gui;
+
+        init();
+        animate();
+        showAxis();
+        forLights();
+        forPrimitives();
+        video_cloud_shadow_gui()
+
+
+
+        function init() {
+            container = document.getElementById('container');
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xcccccc);
+
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, .1, 50);
+            camera.position.set(1, 1, 3);
+            camera.lookAt(1, 1, 0);
+
+            renderer = new THREE.WebGLRenderer();
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.target.set(1, 1, 0);
+
+            container.appendChild(renderer.domElement);
+            document.body.appendChild(renderer.domElement); //vr// document is the html file. This line is to add the renderer to the html file
+
+            renderer.xr.enabled = true;//vr
+            document.body.appendChild(VRButton.createButton(renderer));//vr
+
+            
+
+
+            // stats = new Stats(); // stats
+            // container.appendChild(stats.dom); //stats
+            
+
+            window.addEventListener('resize', onWindowResize);
+
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+
+            render();
+            // stats.update();
+        }
+
+        function showAxis() {
+            const axesHelper = new THREE.AxesHelper(2);
+            scene.add(axesHelper);
+        }
+
+        function forLights() {
+            const color = 0xFFFFFF;
+            const intensity = 1;
+            const light = new THREE.AmbientLight(color, intensity);
+            scene.add(light);
+        }
+
+        function forPrimitives() {
+            const size = 4;
+            function floor() {
+                const geometry = new THREE.PlaneGeometry(size, size);
+                const material = new THREE.MeshStandardMaterial({ color: 0xffffff });
+                const floor = new THREE.Mesh(geometry, material);
+                scene.add(floor);
+                floor.rotation.x = -Math.PI / 2;
+                // floor.position.set(size / 2, 0, size / 2);
+            }
+            function cube() {
+                const geometry = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+                const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+                const cube = new THREE.Mesh(geometry, material);
+                cube.position.set(-0.5, 0, 0);
+                scene.add(cube);
+            }
+
+            floor();
+            // cube();
+
+        }
+
+        // video, color cloud, shadow
+        function video_cloud_shadow_gui() {
+            video = document.createElement('video');
+            video.src = 'video.mp4';
+            video.load();
+            video.muted = true;
+            video.loop = true;
+
+            video.onloadeddata = function () {
+                videoTexture = new THREE.VideoTexture(video);
+                videoTexture.minFilter = THREE.NearestFilter;
+                videoTexture.magFilter = THREE.NearestFilter;
+                videoTexture.generateMipmaps = false;
+                videoTexture.format = THREE.RGBAFormat;
+
+                // image processing
+                // imageProcessingMaterial = new THREE.ShaderMaterial({
+                //     uniforms: {
+                //         sizeDiv2: { type: 'i', value: 10 },
+                //         colorScaleR: { type: 'f', value: 1.0 },
+                //         colorScaleG: { type: 'f', value: 1.0 },
+                //         colorScaleB: { type: 'f', value: 1.0 },
+                //         invert: { type: 'b', value: false },
+                //         image: { type: 't', value: videoTexture },
+                //         resolution: { type: '2f', value: new THREE.Vector2(video.videoWidth, video.videoHeight) }
+                //     },
+                //     vertexShader: document.
+                //         getElementById('vertShader').text,
+                //     fragmentShader: document.
+                //         getElementById('fragShader').text,
+                // });
+                // imageProcessing = new IVimageProcessing(video.videoHeight, video.videoWidth, imageProcessingMaterial);
+                // console.log(imageProcessing.width);
+                // var geometry = new THREE.PlaneGeometry(1, video.videoHeight / video.videoWidth);
+                // var material = new THREE.MeshBasicMaterial({ map: imageProcessing.rtt.texture, side: THREE.DoubleSide });
+                // plan = new THREE.Mesh(geometry, material);
+                // plan.receiveShadow = false;
+                // plan.castShadow = false;
+                // scene.add( plan );
+
+                var geoVideo = new THREE.PlaneGeometry(1, video.videoHeight / video.videoWidth);
+                // var geoVideo = new THREE.PlaneGeometry(2, 1); // (width, height)
+                var matVideo = new THREE.MeshBasicMaterial({ map: videoTexture, side: THREE.DoubleSide });
+                plan = new THREE.Mesh(geoVideo, matVideo);
+                plan.position.set(1, 1.5, -1);
+                var scale = 1.5;
+                plan.scale.set(scale, scale, scale);
+                plan.receiveShadow = false;
+                plan.castShadow = false;
+                scene.add(plan);
+
+                var pausePlayObj =
+                {
+                    pausePlay: function () {
+                        if (!video.paused) {
+                            console.log("pause");
+                            video.pause();
+                        }
+                        else {
+                            console.log("play");
+                            video.play();
+                        }
+                    },
+                    add10sec: function () {
+                        video.currentTime = video.currentTime + 10;
+                        console.log(video.currentTime);
+                    }
+                };
+
+                // show color cloud
+                function videoToColorPoint(video, texture, densities) {
+                    var discret = 1; // 1 means same amout of , pixel
+                     
+                    var colorSpaceMaterial = new THREE.ShaderMaterial({
+                        vertexShader: document.getElementById('RGBVertexShader').textContent,
+                        fragmentShader: document.getElementById('RGBFragmentShader').textContent,
+                        uniforms: {
+                            tex: { value: texture },
+                            transparent: true,
+                        }
+                    });
+
+                    const geometry = new THREE.BufferGeometry();
+                    const positions = [];
+                    let compteur = 0;
+                    console.log("height");
+                    console.log(video.videoHeight);
+                    console.log("width");
+                    console.log(video.videoWidth);
+                    for (let i = 0; i < video.videoHeight; i += discret)
+                        for (let j = 0; j < video.videoWidth; j += discret) {
+                            // positions
+
+                            const x = (i + 0.5) / video.videoHeight;
+                            const y = (j + 0.5) / video.videoWidth;
+                            const z = 0;
+
+                            positions.push(x, y, z);
+                            compteur++;
+                        }
+
+                    console.log(compteur);
+                    console.log(video.videoHeight);
+                    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+                    geometry.computeBoundingSphere();
+
+                    points = new THREE.Points(geometry, colorSpaceMaterial);
+                    points.position.set(0, 0, 0);
+                    scene.add(points);
+                    // });
+                };
+                video.play();
+                video.volume = 0.5; // volume of the video
+                // document.body.addEventListener('click', () => {
+                //     video.play();
+                // });
+                videoToColorPoint(video, videoTexture);
+
+                // show Shadow
+                function showShadow(video, texture) {
+                    var discret = 1; // 1 means same amout of , pixel
+
+                    var shadowSpaceMaterial = new THREE.ShaderMaterial({
+                        // vertexShader: document.getElementById('RGBVertexShader').textContent,
+                        vertexShader: document.getElementById('shadowRGBVertexShader').textContent,//TOD
+                        fragmentShader: document.getElementById('shadowFragmentShader').textContent,
+                        uniforms: {
+                            tex: { value: texture },
+                        }
+                    });
+
+                    const geometry = new THREE.BufferGeometry();
+                    const positions = [];
+                    for (let i = 0; i < video.videoHeight; i += discret)
+                        for (let j = 0; j < video.videoWidth; j += discret) {
+                            // positions
+
+                            const x = (i + 0.5) / video.videoHeight;
+                            const y = (j + 0.5) / video.videoWidth;
+                            const z = 0;
+
+                            positions.push(x, y, z);
+                        }
+                    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+                    geometry.computeBoundingSphere();
+
+                    shadows = new THREE.Points(geometry, shadowSpaceMaterial);
+                    shadows.position.set(0, 0, 0);
+                    scene.add(shadows);
+                    // });
+                };
+                showShadow(video, videoTexture);
+
+
+
+                // GUI
+                gui = new GUI();
+                // gui.add(imageProcessingMaterial.uniforms.colorScaleR, 'value', 0, 1).name('Red');
+                // gui.add(imageProcessingMaterial.uniforms.colorScaleG, 'value', 0, 1).name('Green');
+                // gui.add(imageProcessingMaterial.uniforms.colorScaleB, 'value', 0, 1).name('Blue');
+                // gui.add(imageProcessingMaterial.uniforms.invert, 'value').name('Invert');
+                gui.add(pausePlayObj, 'pausePlay').name('Pause/play video');
+                gui.add(pausePlayObj, 'add10sec').name('Add 10 seconds');
+
+                // gui for color space
+                function updateVertexShader(newShader, newShadowShader) {
+                    points.material.vertexShader = newShader; // We cannot change the shader directly, so we need to update the material
+                    points.material.needsUpdate = true; // Specifies that the material needs to be recompiled.
+                    points.material.dispose();  // Dispose to force recompilation
+
+                    shadows.material.vertexShader = newShadowShader; // We cannot change the shader directly, so we need to update the material
+                    shadows.material.needsUpdate = true; // Specifies that the material needs to be recompiled.
+                    shadows.material.dispose();  // Dispose to force recompilation
+                    console.log("Shader updated");
+                }
+                gui.add({ shader: 'RGB' }, 'shader', ['RGB', 'CIExyY', 'CIELAB'])//({key: initial value}, 'key', [list of values])
+                    .name('Color Space') // .name('display name').
+                    .onChange(value => { // .onChange(selected value)
+                        switch(value) { // action based on selected value
+                            case 'RGB':
+                                updateVertexShader(document.getElementById('RGBVertexShader').textContent, document.getElementById('shadowRGBVertexShader').textContent); 
+                                break;
+                            case 'CIExyY':
+                                updateVertexShader(document.getElementById('CIExyYVertexShader').textContent, document.getElementById('shadowCIExyYVertexShader').textContent);
+                                break;
+                            case 'CIELAB':
+                                updateVertexShader(document.getElementById('CIELABVertexShader').textContent, document.getElementById('shadowCIELABVertexShader').textContent);
+                                break;
+                        }
+                });
+
+                // gui for density
+                function updateFragmentShader(newShader) {
+                    points.material.fragmentShader = newShader; // We cannot change the shader directly, so we need to update the material
+                    points.material.needsUpdate = true; // Specifies that the material needs to be recompiled.
+                    points.material.dispose();  // Dispose to force recompilation
+                }
+                gui.add({ shader: 'color' }, 'shader', ['color', 'density'])//({key: initial value}, 'key', [list of values])
+                    .name('density') // .name('display name').
+                    .onChange(value => { // .onChange(selected value)
+                        switch(value) { // action based on selected value
+                            case 'color':
+                                updateFragmentShader(document.getElementById('RGBFragmentShader').textContent); 
+                                break;
+                            case 'density':
+                                updateFragmentShader(document.getElementById('densityFragmentShader').textContent);
+                                break;
+                        }
+                });
+
+                // vr controller
+                const geometry = new THREE.BufferGeometry();
+                geometry.setFromPoints( [ new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, 0, - 5 ) ] );
+                const controller1 = renderer.xr.getController( 0 );
+                controller1.add( new THREE.Line( geometry ) );
+                scene.add( controller1 );
+                const controller2 = renderer.xr.getController( 1 );
+                controller2.add( new THREE.Line( geometry ) );
+                scene.add( controller2 );
+                const controllerModelFactory = new XRControllerModelFactory();
+                const controllerGrip1 = renderer.xr.getControllerGrip( 0 );
+                controllerGrip1.add( controllerModelFactory.createControllerModel( controllerGrip1 ) );
+                scene.add( controllerGrip1 );
+                const controllerGrip2 = renderer.xr.getControllerGrip( 1 );
+                controllerGrip2.add( controllerModelFactory.createControllerModel( controllerGrip2 ) );
+                scene.add( controllerGrip2 );
+
+                // 3D GUI // vr
+                gui.domElement.style.visibility = 'hidden';
+                const group = new InteractiveGroup();
+                group.listenToPointerEvents(renderer, camera); // vr controller
+                group.listenToXRControllerEvents( controller1 ); // vr controller
+                group.listenToXRControllerEvents( controller2 );
+                scene.add(group);
+                const mesh = new HTMLMesh(gui.domElement);
+                mesh.position.set(0,1.5,-1) // position of the gui window
+                mesh.rotation.y = Math.PI / 4;
+                mesh.scale.setScalar(2);
+                group.add(mesh);
+
+                // Add stats.js // GPU memory, FPS, etc
+                stats = new Stats();
+                stats.dom.style.width = '80px';
+                stats.dom.style.height = '48px';
+                document.body.appendChild( stats.dom );
+
+                statsMesh = new HTMLMesh( stats.dom );
+                statsMesh.position.x = - 0.75;
+                statsMesh.position.y = 2;
+                statsMesh.position.z = - 0.6;
+                statsMesh.rotation.y = Math.PI / 4;
+                statsMesh.scale.setScalar( 2.5 );
+                group.add( statsMesh );
+
+                
+
+            };
+
+        }
+
+
+
+
+
+        function render() {
+            renderer.setAnimationLoop(render);//vr
+            renderer.render(scene, camera);
+
+            // stats.update(); // stats
+            // statsMesh.material.map.update();// stats
+
+        }
+
+    </script>
+
+</body>
+
+</html>
