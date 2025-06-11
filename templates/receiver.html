@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+
+<body>
+  <h2>Receiver</h2>
+  <video id="remoteVideo" autoplay playsinline muted style="width: 100%; height: auto;"></video>
+
+
+  <script>
+    const ws = new WebSocket("wss://161.3.140.22:8443");
+    ws.onopen = () => ws.send(JSON.stringify({ role: "receiver" }));
+
+    const pc = new RTCPeerConnection();
+    const video = document.getElementById("remoteVideo");
+
+    pc.ontrack = (event) => {
+      video.srcObject = event.streams[0];
+    };
+
+    pc.onicecandidate = e => {
+      if (e.candidate) {
+        ws.send(JSON.stringify({ role: "receiver", candidate: e.candidate }));
+      }
+    };
+
+    ws.onmessage = async (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === "offer") {
+        await pc.setRemoteDescription({ type: "offer", sdp: data.sdp });
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        ws.send(JSON.stringify({ role: "receiver", type: "answer", sdp: answer.sdp }));
+      } else if (data.candidate) {
+        pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+      }
+    };
+  </script>
+</body>
+
+</html>

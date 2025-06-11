@@ -24,16 +24,19 @@ pip install -r requirements.txt
 # How to run
 In terminal 1
 ```
+cd
 cd ~/llama-proxy-manual
 node proxy.js
 ```
 In terminal 2
 ```
+cd
 cd Documents/TY/llama.cpp/build/bin/
 ./llama-server -hf ggml-org/Qwen2.5-VL-3B-Instruct-GGUF --host 0.0.0.0 --port 8080
 ```
 In terminal 3
 ```
+cd
 cd Documents/TY/PROJECT/
 conda activate projectEnv
 ./execute.sh
@@ -123,6 +126,74 @@ mv package node_modules/follow-redirects
 
 node proxy.js
 ```
+---------------------------------------------------------
+# to stream video from the workstation to metaquest
+
+cd ~/llama-proxy-manual
+nano proxy.js
+cd node_modules/
+mkdir -p ws
+cd ..
+curl -L https://registry.npmjs.org/ws/-/ws-8.14.1.tgz | tar -xz --strip=1 -C node_modules/wscd 
+
+nano proxy.js << over write{{{{{{{{{{{{{{
+  
+proxy.js                                                                    
+const https = require('https');
+const http = require('http');
+const fs = require('fs');
+const httpProxy = require('./http-proxy/lib/http-proxy');
+const WebSocket = require('ws');  // ✅ Only declare this once
+
+const proxy = httpProxy.createProxyServer({});
+
+const options = {
+  key: fs.readFileSync('./certs/privkey.pem'),
+  cert: fs.readFileSync('./certs/fullchain.pem')
+};
+
+// ✅ Create ONE shared HTTPS server for both HTTP and WebSocket
+const server = https.createServer(options, (req, res) => {
+  if (req.url.startsWith("/v1/")) {
+    proxy.web(req, res, { target: 'http://127.0.0.1:8080' });
+  } else {
+    res.writeHead(404);
+    res.end("Not found");
+  }
+});
+
+server.listen(8443, '0.0.0.0', () => {
+  console.log('✅ HTTPS proxy + signaling running on all interfaces at https://<your-ip>:8443');
+});
+
+// ✅ WebSocket signaling on same server (port 8443)
+const wss = new WebSocket.Server({ server });
+
+let sender = null;
+let receiver = null;
+
+wss.on('connection', (ws) => {
+  ws.on('message', (msg) => {
+    const data = JSON.parse(msg);
+
+    if (data.role === 'sender') sender = ws;
+    if (data.role === 'receiver') receiver = ws;
+
+    const target = ws === sender ? receiver : sender;
+    if (target && target.readyState === WebSocket.OPEN) {
+      target.send(JSON.stringify(data));
+    }
+  });
+
+  ws.on('close', () => {
+    if (ws === sender) sender = null;
+    if (ws === receiver) receiver = null;
+  });
+});
+
+}}}}}}}}}}}}}}
+node proxy.js
+
 ---------------------------------------------------------
 
 # llama.cpp setup

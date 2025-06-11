@@ -123,7 +123,8 @@
 
     <h1>VLM and Three.js</h1>
     <div id="container" style="display: flex; width: 100%; height: 80vh; gap: 20px;">
-        <video id="videoFeed" autoplay playsinline style="width: 100%; height: auto; border-radius: 8px;"></video>
+        <video id="videoFeed" autoplay playsinline style="width: 100%; height: auto; border-radius: 8px;"
+            capture="environment"></video>
         <canvas id="canvas" class="hidden"></canvas> <!-- For capturing frames -->
         <script type="module">
             //----------------------------------------------------------------------------
@@ -143,6 +144,15 @@
             import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
             import { HTMLMesh } from 'three/addons/interactive/HTMLMesh.js';//3D gui
             import { InteractiveGroup } from 'three/addons/interactive/InteractiveGroup.js';//3D gui
+            import * as ThreeMeshUI from 'three/addons/three-mesh-ui';
+
+
+            let chatTextMesh = null;
+            let screenTextMesh = null;
+            let responseText = "I am thinking...";
+            let debugText = "start"
+            let stream;
+            let isProcessing = false;
 
             // Scene setup
             const scene = new THREE.Scene();
@@ -248,6 +258,36 @@
             }
             // set_cross();
 
+            //----------------------------------------------------------------------------
+            // Get video stream from workstation
+            //----------------------------------------------------------------------------
+            // const ws = new WebSocket("wss://161.3.140.22:8443");
+            // ws.onopen = () => ws.send(JSON.stringify({ role: "receiver" }));
+
+            // const pc = new RTCPeerConnection();
+            // const video = document.getElementById("videoFeed");
+
+            // pc.ontrack = (event) => {
+            //     video.srcObject = event.streams[0];
+            // };
+
+            // pc.onicecandidate = e => {
+            //     if (e.candidate) {
+            //         ws.send(JSON.stringify({ role: "receiver", candidate: e.candidate }));
+            //     }
+            // };
+
+            // ws.onmessage = async (event) => {
+            //     const data = JSON.parse(event.data);
+            //     if (data.type === "offer") {
+            //         await pc.setRemoteDescription({ type: "offer", sdp: data.sdp });
+            //         const answer = await pc.createAnswer();
+            //         await pc.setLocalDescription(answer);
+            //         ws.send(JSON.stringify({ role: "receiver", type: "answer", sdp: answer.sdp }));
+            //     } else if (data.candidate) {
+            //         pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+            //     }
+            // };
 
             //----------------------------------------------------------------------------
             // Communicate with actual camera and VLM
@@ -256,9 +296,7 @@
             const canvas = document.getElementById('canvas');
             const baseURL = "http://127.0.0.1:8080";
             const instructionText = "Explain this equation"; // default instruction
-            let responseText = "I am thinking...";
-            let stream;
-            let isProcessing = false;
+
 
             // Returns response text (string)
             async function sendChatCompletionRequest(instruction, imageBase64URL) {
@@ -306,9 +344,11 @@
                 }
             }
 
-            function captureImage() {
+            function captureImage() {// It does not work!!!!
+
                 if (!stream || !video.videoWidth) {
                     console.warn("Video stream not ready for capture.");
+                    responseText = "Video stream not ready for capture.";
                     return null;
                 }
                 canvas.width = video.videoWidth;
@@ -350,6 +390,7 @@
             function handleCapture() {
                 isProcessing = true;
                 const imageBase64URL = captureImage();
+                debugText = "captured"
                 sendData(imageBase64URL);
                 stopCamera(); // Stop the camera stream after capturing the image
             }
@@ -368,40 +409,61 @@
 
 
             //---------------------------------------------------------------------------------------------
-            // Font
-            let chat_text = "Trust me kid."
-            let screen_text = responseText
-            const loader = new FontLoader();
-            loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function (font) {
-                const chatText_g = new TextGeometry(chat_text, {
-                    font: font,
-                    size: 0.2,
-                    height: 0.05
-                });
-                const screenText_g = new TextGeometry(screen_text, {
-                    font: font,
-                    size: 0.2,
-                    height: 0.05
-                });
-                const textMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
-                const chatText = new THREE.Mesh(chatText_g, textMaterial);
-                chatText.position.set(-1.3, 1, 1.1);
-                world.add(chatText);
+            // Text grometry
 
-                const screenText = new THREE.Mesh(screenText_g, textMaterial);
-                screenText.position.set(-2.5, 4, 0.1);
-                world.add(screenText);
-            });
+
+
+            function disp_text(chat_text, screen_text) {
+                const loader = new FontLoader();
+                loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function (font) {
+                    const textMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
+
+                    // Remove old text meshes if they exist
+                    if (chatTextMesh) world.remove(chatTextMesh);
+                    if (screenTextMesh) world.remove(screenTextMesh);
+
+                    // Chat text
+                    const chatTextGeometry = new TextGeometry(chat_text, {
+                        font: font,
+                        size: 0.2,
+                        depth: 0.05
+                    });
+                    chatTextMesh = new THREE.Mesh(chatTextGeometry, textMaterial);
+                    chatTextMesh.position.set(-1.3, 1, 1.1);
+                    world.add(chatTextMesh);
+
+                    // Screen text
+                    const screenTextGeometry = new TextGeometry(screen_text, {
+                        font: font,
+                        size: 0.2,
+                        depth: 0.05
+                    });
+                    screenTextMesh = new THREE.Mesh(screenTextGeometry, textMaterial);
+                    screenTextMesh.position.set(-2.5, 4, 0.1);
+                    world.add(screenTextMesh);
+                });
+            }
+            setInterval(() => {
+                const newText = new Date().toLocaleTimeString();
+                disp_text(debugText, responseText);
+            }, 1000); // update every 5 seconds
+
+            // responseText = await sendChatCompletionRequest(...);
+            // disp_text("AI:", responseText);
+
+
+
+
 
             // Scale world to fit MR view
             world.scale.set(0.1, 0.1, 0.1); // Shrink to 10%
-            world.position.set(0, 0, -0.7);
+            world.position.set(0, 0.9, -0.7);
 
             //-----------------------------------------------------
 
             // Stop rendering
             let isBButtonPressed = false;
-            function stopRendering(){
+            function stopRendering() {
                 isBButtonPressed = true;
             }
 
@@ -437,11 +499,25 @@
             group.listenToXRControllerEvents(controller2);
             scene.add(group);
             const mesh = new HTMLMesh(gui.domElement);
-            mesh.position.set(0, 0, -0.5);
-            mesh.scale.set(0.05,0.05,0.05);
+            mesh.position.set(0, 0.85, -0.5);
+            mesh.scale.set(0.05, 0.05, 0.05);
             // mesh.rotation.y = Math.PI / 5;
             mesh.scale.setScalar(2);
             group.add(mesh);
+
+            // mesh-ui
+            const container = new ThreeMeshUI.Block({
+                width: 1,
+                height: 0.5,
+                padding: 0.05,
+                justifyContent: 'center',
+                fontSize: 0.07,
+                backgroundColor: new THREE.Color(0x333333),
+            });
+
+            const text = new ThreeMeshUI.Text({ content: "Click Me" });
+            container.add(text);
+            scene.add(container);
 
             //----------------------------------------------------------------------------------
             // let isBButtonPressed = false;
@@ -457,13 +533,13 @@
             //         }
             //     }
             //     //get buttons inputs from controller 1
-                
+
             // });
 
-            // TODO: camera and gui
-
+            // TODO: mesh.js
             function animate() {
                 if (!isBButtonPressed) {
+
                     requestAnimationFrame(animate);
                     renderer.render(scene, camera);
                 }
