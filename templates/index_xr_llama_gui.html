@@ -144,7 +144,6 @@
             import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
             import { HTMLMesh } from 'three/addons/interactive/HTMLMesh.js';//3D gui
             import { InteractiveGroup } from 'three/addons/interactive/InteractiveGroup.js';//3D gui
-            import * as ThreeMeshUI from 'three/addons/three-mesh-ui';
 
 
             let chatTextMesh = null;
@@ -261,40 +260,40 @@
             //----------------------------------------------------------------------------
             // Get video stream from workstation
             //----------------------------------------------------------------------------
-            // const ws = new WebSocket("wss://161.3.140.22:8443");
-            // ws.onopen = () => ws.send(JSON.stringify({ role: "receiver" }));
+            const ws = new WebSocket("wss://161.3.140.22:8443");
+            ws.onopen = () => ws.send(JSON.stringify({ role: "receiver" }));
 
-            // const pc = new RTCPeerConnection();
-            // const video = document.getElementById("videoFeed");
+            const pc = new RTCPeerConnection();
+            const video = document.getElementById("videoFeed");
 
-            // pc.ontrack = (event) => {
-            //     video.srcObject = event.streams[0];
-            // };
+            pc.ontrack = (event) => {
+                video.srcObject = event.streams[0];
+            };
 
-            // pc.onicecandidate = e => {
-            //     if (e.candidate) {
-            //         ws.send(JSON.stringify({ role: "receiver", candidate: e.candidate }));
-            //     }
-            // };
+            pc.onicecandidate = e => {
+                if (e.candidate) {
+                    ws.send(JSON.stringify({ role: "receiver", candidate: e.candidate }));
+                }
+            };
 
-            // ws.onmessage = async (event) => {
-            //     const data = JSON.parse(event.data);
-            //     if (data.type === "offer") {
-            //         await pc.setRemoteDescription({ type: "offer", sdp: data.sdp });
-            //         const answer = await pc.createAnswer();
-            //         await pc.setLocalDescription(answer);
-            //         ws.send(JSON.stringify({ role: "receiver", type: "answer", sdp: answer.sdp }));
-            //     } else if (data.candidate) {
-            //         pc.addIceCandidate(new RTCIceCandidate(data.candidate));
-            //     }
-            // };
+            ws.onmessage = async (event) => {
+                const data = JSON.parse(event.data);
+                if (data.type === "offer") {
+                    await pc.setRemoteDescription({ type: "offer", sdp: data.sdp });
+                    const answer = await pc.createAnswer();
+                    await pc.setLocalDescription(answer);
+                    ws.send(JSON.stringify({ role: "receiver", type: "answer", sdp: answer.sdp }));
+                } else if (data.candidate) {
+                    pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+                }
+            };
 
             //----------------------------------------------------------------------------
             // Communicate with actual camera and VLM
             //----------------------------------------------------------------------------
-            const video = document.getElementById('videoFeed');
+            // const video = document.getElementById('videoFeed');
             const canvas = document.getElementById('canvas');
-            const baseURL = "http://127.0.0.1:8080";
+            const baseURL = "http://127.0.0.1:8080"; // address of VLM server but it will be converted to https
             const instructionText = "Explain this equation"; // default instruction
 
 
@@ -505,19 +504,7 @@
             mesh.scale.setScalar(2);
             group.add(mesh);
 
-            // mesh-ui
-            const container = new ThreeMeshUI.Block({
-                width: 1,
-                height: 0.5,
-                padding: 0.05,
-                justifyContent: 'center',
-                fontSize: 0.07,
-                backgroundColor: new THREE.Color(0x333333),
-            });
-
-            const text = new ThreeMeshUI.Text({ content: "Click Me" });
-            container.add(text);
-            scene.add(container);
+            
 
             //----------------------------------------------------------------------------------
             // let isBButtonPressed = false;
@@ -536,11 +523,12 @@
 
             // });
 
-            // TODO: mesh.js
+
             function animate() {
                 if (!isBButtonPressed) {
 
                     requestAnimationFrame(animate);
+                    ThreeMeshUI.update();
                     renderer.render(scene, camera);
                 }
             }

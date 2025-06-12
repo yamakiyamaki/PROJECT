@@ -123,7 +123,8 @@
 
     <h1>VLM and Three.js</h1>
     <div id="container" style="display: flex; width: 100%; height: 80vh; gap: 20px;">
-        <video id="videoFeed" autoplay playsinline style="width: 100%; height: auto; border-radius: 8px;"></video>
+        <video id="videoFeed" autoplay playsinline style="width: 100%; height: auto; border-radius: 8px;"
+            capture="environment"></video>
         <canvas id="canvas" class="hidden"></canvas> <!-- For capturing frames -->
         <script type="module">
             //----------------------------------------------------------------------------
@@ -143,11 +144,14 @@
             import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
             import { HTMLMesh } from 'three/addons/interactive/HTMLMesh.js';//3D gui
             import { InteractiveGroup } from 'three/addons/interactive/InteractiveGroup.js';//3D gui
-            import * as ThreeMeshUI from 'three/addons/three-mesh-ui';
+
+            // import * as ThreeMeshUI from 'https://cdn.skypack.dev/three-mesh-ui';
+            import * as ThreeMeshUI from '/static/js/three-mesh-ui.module.js';
 
             let chatTextMesh = null;
             let screenTextMesh = null;
             let responseText = "I am thinking...";
+            let debugText = "start"
             let stream;
             let isProcessing = false;
 
@@ -255,13 +259,43 @@
             }
             // set_cross();
 
+            //----------------------------------------------------------------------------
+            // Get video stream from workstation
+            //----------------------------------------------------------------------------
+            const ws = new WebSocket("wss://161.3.140.22:8443");
+            ws.onopen = () => ws.send(JSON.stringify({ role: "receiver" }));
+
+            const pc = new RTCPeerConnection();
+            const video = document.getElementById("videoFeed");
+
+            pc.ontrack = (event) => {
+                video.srcObject = event.streams[0];
+            };
+
+            pc.onicecandidate = e => {
+                if (e.candidate) {
+                    ws.send(JSON.stringify({ role: "receiver", candidate: e.candidate }));
+                }
+            };
+
+            ws.onmessage = async (event) => {
+                const data = JSON.parse(event.data);
+                if (data.type === "offer") {
+                    await pc.setRemoteDescription({ type: "offer", sdp: data.sdp });
+                    const answer = await pc.createAnswer();
+                    await pc.setLocalDescription(answer);
+                    ws.send(JSON.stringify({ role: "receiver", type: "answer", sdp: answer.sdp }));
+                } else if (data.candidate) {
+                    pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+                }
+            };
 
             //----------------------------------------------------------------------------
             // Communicate with actual camera and VLM
             //----------------------------------------------------------------------------
-            const video = document.getElementById('videoFeed');
+            // const video = document.getElementById('videoFeed');
             const canvas = document.getElementById('canvas');
-            const baseURL = "http://127.0.0.1:8080";
+            const baseURL = "http://127.0.0.1:8080"; // address of VLM server but it will be converted to https
             const instructionText = "Explain this equation"; // default instruction
 
 
@@ -296,25 +330,26 @@
                 return data.choices[0].message.content;
             }
 
-            // 1. Ask for camera permission on load
-            async function initCamera() {
-                try {
-                    stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-                    video.srcObject = stream;
-                    responseText = "Camera access granted. Ready to start.";
-                    console.log(responseText);
-                } catch (err) {
-                    console.error("Error accessing camera:", err);
-                    responseText = `Error accessing camera: ${err.name} - ${err.message}. Please ensure permissions are granted and you are on HTTPS or localhost.`;
-                    console.log(responseText);
-                    alert(`Error accessing camera: ${err.name}. Make sure you've granted permission and are on HTTPS or localhost.`);
-                }
-            }
+            // // 1. Ask for camera permission on load
+            // async function initCamera() {
+            //     try {
+            //         stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            //         video.srcObject = stream;
+            //         responseText = "Camera access granted. Ready to start.";
+            //         console.log(responseText);
+            //     } catch (err) {
+            //         console.error("Error accessing camera:", err);
+            //         responseText = `Error accessing camera: ${err.name} - ${err.message}. Please ensure permissions are granted and you are on HTTPS or localhost.`;
+            //         console.log(responseText);
+            //         alert(`Error accessing camera: ${err.name}. Make sure you've granted permission and are on HTTPS or localhost.`);
+            //     }
+            // }
 
-            function captureImage() {
-                responseText = "aaaaa";
-                if (!stream || !video.videoWidth) {
+            function captureImage() {// It does not work!!!!
+
+                if (!video.videoWidth) {
                     console.warn("Video stream not ready for capture.");
+                    responseText = "Video stream not ready for capture.";
                     return null;
                 }
                 canvas.width = video.videoWidth;
@@ -356,28 +391,27 @@
             function handleCapture() {
                 isProcessing = true;
                 const imageBase64URL = captureImage();
+                debugText = "captured"
                 sendData(imageBase64URL);
-                stopCamera(); // Stop the camera stream after capturing the image
+                // stopCamera(); // Stop the camera stream after capturing the image
             }
 
             // Stop the camera stream
-            function stopCamera() {
-                if (stream) {
-                    stream.getTracks().forEach(track => track.stop());  // Stop all tracks (video/audio)
-                    video.srcObject = null; // Disconnect the video stream
-                    console.log("Camera stream stopped.");
-                }
-            }
+            // function stopCamera() {
+            //     if (stream) {
+            //         stream.getTracks().forEach(track => track.stop());  // Stop all tracks (video/audio)
+            //         video.srcObject = null; // Disconnect the video stream
+            //         console.log("Camera stream stopped.");
+            //     }
+            // }
 
             // Initialize camera when the page loads
-            window.addEventListener('DOMContentLoaded', initCamera);
+            // window.addEventListener('DOMContentLoaded', initCamera);
 
 
             //---------------------------------------------------------------------------------------------
+
             // Text grometry
-
-
-
             function disp_text(chat_text, screen_text) {
                 const loader = new FontLoader();
                 loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function (font) {
@@ -409,9 +443,9 @@
                 });
             }
             setInterval(() => {
-                const newText = "New response at " + new Date().toLocaleTimeString();
-                disp_text(responseText, newText);
-            }, 5000); // update every 5 seconds
+                const newText = new Date().toLocaleTimeString();
+                disp_text(debugText, responseText);
+            }, 1000); // update every 5 seconds
 
             // responseText = await sendChatCompletionRequest(...);
             // disp_text("AI:", responseText);
@@ -470,20 +504,38 @@
             mesh.scale.setScalar(2);
             group.add(mesh);
 
-
-            // mesh-ui
+            // // mesh-ui
+            let text;
+            let textReady = false;
             const container = new ThreeMeshUI.Block({
                 width: 1,
                 height: 0.5,
-                padding: 0.05,
-                justifyContent: 'center',
+                fontFamily: '/static/assets/Roboto-msdf.json',
+                fontTexture: '/static/assets/Roboto-msdf.png',
                 fontSize: 0.07,
                 backgroundColor: new THREE.Color(0x333333),
+                justifyContent: 'center',
+                alignContent: 'center',
             });
 
-            const text = new ThreeMeshUI.Text({ content: "Click Me" });
+            text = new ThreeMeshUI.Text({ content: "Initial text" });
             container.add(text);
             scene.add(container);
+
+            // later inside the same scope
+            text.set({ content: "Updated response here" });  // safe to call now
+
+
+            setTimeout(() => {
+                const texture = container.children[0]?.children[0]?.material?.uniforms?.uTexture?.value;
+                if (texture) {
+                    texture.colorSpace = THREE.SRGBColorSpace;
+                    console.log("Patched ThreeMeshUI texture colorSpace");
+                }
+            }, 1000);
+            setTimeout(() => {
+                textReady = true;
+            }, 3000);
 
             //----------------------------------------------------------------------------------
             // let isBButtonPressed = false;
@@ -502,11 +554,17 @@
 
             // });
 
-            // TODO: camera and mesh.js
+            // TODO: fix camera and mesh
             function animate() {
                 if (!isBButtonPressed) {
 
                     requestAnimationFrame(animate);
+                    ThreeMeshUI.update();
+                    if (!textReady) {
+                        text.set({ content: responseText });
+                        textReady = true;
+                    }
+                    // ThreeMeshUI.update();
                     renderer.render(scene, camera);
                 }
             }
