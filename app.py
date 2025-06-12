@@ -6,13 +6,19 @@ app = Flask(__name__)
 @app.route("/") # https://161.3.140.22:5000/ # access receiver first before access sender
 def index():
     # return render_template("index_xr_llama_gui.html")
-    return render_template("index_xr_llama_meshui.html")
+    # return render_template("index_xr_llama_meshui.html")
+    return render_template("index_xr_llama_meshui_img.html")
     # return render_template("receiver.html")
+    # return render_template("receiver_img.html")
     # return render_template("sprint1_vr.html")
 
 @app.route("/sender") # https://161.3.140.22:5000/sender 
 def sender():
     return render_template("sender.html")
+    # return render_template("sender_img.html")
+
+
+
 
 if __name__ == "__main__":
     # app.run(host='0.0.0.0', port=5000, debug=True) # for http

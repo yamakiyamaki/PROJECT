@@ -121,7 +121,7 @@
 
 <body>
 
-    <h1>VLM and Three.js</h1>
+    <h1>At the begining: Wait 20 seconds, then reload sender(camera)</h1>
     <div id="container" style="display: flex; width: 100%; height: 80vh; gap: 20px;">
         <video id="videoFeed" autoplay playsinline style="width: 100%; height: auto; border-radius: 8px;"
             capture="environment"></video>
@@ -523,19 +523,17 @@
             scene.add(container);
 
             // later inside the same scope
-            text.set({ content: "Updated response here" });  // safe to call now
-
+            
 
             setTimeout(() => {
                 const texture = container.children[0]?.children[0]?.material?.uniforms?.uTexture?.value;
                 if (texture) {
                     texture.colorSpace = THREE.SRGBColorSpace;
                     console.log("Patched ThreeMeshUI texture colorSpace");
+                    textReady = true;
                 }
-            }, 1000);
-            setTimeout(() => {
-                textReady = true;
-            }, 3000);
+            }, 20000);
+
 
             //----------------------------------------------------------------------------------
             // let isBButtonPressed = false;
@@ -560,11 +558,11 @@
 
                     requestAnimationFrame(animate);
                     ThreeMeshUI.update();
-                    if (!textReady) {
-                        text.set({ content: responseText });
+                    if (textReady) {
+                        
+                        // text.set({ content: responseText });
                         textReady = true;
                     }
-                    // ThreeMeshUI.update();
                     renderer.render(scene, camera);
                 }
             }

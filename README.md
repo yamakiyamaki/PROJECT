@@ -43,6 +43,13 @@ conda activate projectEnv
 ```
 Access here by HMD: https://161.3.140.22.5000
 
+## for receiver and sender
+In terminal 4
+```
+cd ~/Documents/TY/PROJECT
+python signaling_server.py
+```
+
 ### manualy
 conda activate projectEnv
 In a terminal, `python app.py`
@@ -55,11 +62,6 @@ openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 1 -nodes
 - Auvergne-Rhône-Alpes 
 - Saint-Étienne
 
----------------------------------------------------------
-
-# ToDo
-Fine tune model to answer kid's mathematical question. Or choose another model. Maybe not VLM. 
-Access flask by another device(HMD)
 
 ---------------------------------------------------------
 # node.js setup(without using sudo and npm) to handle http as https
@@ -193,6 +195,14 @@ wss.on('connection', (ws) => {
 
 }}}}}}}}}}}}}}
 node proxy.js
+openssl x509 -in cert.pem -outform DER -out cert.crt
+
+sudo apt install android-tools-adb
+!!!Connect metaquest and workstation with usb cable and go notification in metaquest
+adb device
+adb push cert.crt /sdcard/Download/     or     just open in gui file manager and copy the cert.crt
+adb shell am start -n com.android.settings/.Settings
+
 
 ---------------------------------------------------------
 
@@ -254,4 +264,8 @@ Models
 #### Llama 4 Scout
 (tool_name) -hf ggml-org/Llama-4-Scout-17B-16E-Instruct-GGUF
 Go to the provided address.
+
+
+# Open metaquest's android setting.
+adb shell am start -n com.android.settings/.Settings
 
