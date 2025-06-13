@@ -1,25 +1,25 @@
-# Create env
-```
-wget https://repo.anaconda.com/archive/Anaconda3-2024.10-1-Linux-x86_64.sh
-chmod +x Anaconda3-2024.10-1-Linux-x86_64.sh 
-./Anaconda3-2024.10-1-Linux-x86_64.sh 
-export PATH="$HOME/anaconda3/bin:$PATH"
-source ~/.bashrc   # or ~/.zshrc, depending on what you're using
-conda --version
+# Overview
+<img width="906" alt="image" src="https://github.com/user-attachments/assets/3194fdc2-ba8d-4010-b6ca-38e364c305f1" />
 
-conda create -n projectEnv python=3.11
-conda activate projectEnv
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
-pip install -r requirements.txt
-```
+### app.py
+- This is a Flask-based web server that serves the following html files.
+#### templates/index_xr_llama_meshui_img.html
+- Demo for MR view.
+#### templates/index_xr_llama.html
+- Demo for capturing an image from the camera stream and communicating with VLM.
 
----------------------------------------------------------
-# How to add library
-!! write library name in requirements.txt first.
-conda activate projectEnv
-pip install -r requirements.txt
+### app_stream.py and signaling_server.py
+- This is for a demo to show video streaming. Following code works together
+#### templates/sender.html
+- Sending video
+#### templates/receiver.html
+- Receiving
 
----------------------------------------------------------
+### /static
+- This is a folder uploaded to the Flask server.
+
+### /llama-proxy-manual/proxy.js
+- This file listens on https://localhost:8443, when there is access on this port, it forwards to a local HTTP server running on http://127.0.0.1:8080. Because the llama server is running on HTTP, and WebXR needs HTTPS, but a mixture of HTTP and HTTPS is not allowed. So I needed to do this.
 
 # How to run
 In terminal 1
@@ -43,7 +43,7 @@ conda activate projectEnv
 ```
 Access here by HMD: https://161.3.140.22.5000
 
-## for receiver and sender
+### For video streaming demo
 In terminal 4
 ```
 cd ~/Documents/TY/PROJECT
@@ -51,17 +51,37 @@ conda activate projectEnv
 python signaling_server.py
 ```
 
-### manualy
+# How to create env
+```
+wget https://repo.anaconda.com/archive/Anaconda3-2024.10-1-Linux-x86_64.sh
+chmod +x Anaconda3-2024.10-1-Linux-x86_64.sh 
+./Anaconda3-2024.10-1-Linux-x86_64.sh 
+export PATH="$HOME/anaconda3/bin:$PATH"
+source ~/.bashrc   # or ~/.zshrc, depending on what you're using
+conda --version
+
+conda create -n projectEnv python=3.11
 conda activate projectEnv
-In a terminal, `python app.py`
-In another terminal, `python main.py`
-Access here: http://10.1.4.56:5000/ #! if you are in another machin you need to access different url shown on terminal(upper one)
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+pip install -r requirements.txt
+```
 
 ### Maybe not neccessary
 openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 1 -nodes
 - FR 
 - Auvergne-Rhône-Alpes 
 - Saint-Étienne
+
+---------------------------------------------------------
+# How to add library
+!! write library name in requirements.txt first.
+conda activate projectEnv
+pip install -r requirements.txt
+
+---------------------------------------------------------
+
+
+
 
 
 ---------------------------------------------------------
