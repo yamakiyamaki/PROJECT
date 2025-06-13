@@ -1,25 +1,25 @@
 # Overview
+
+## app.py
+This is a Flask-based web server that serves the following html files.
+- templates/index_xr_llama_meshui_img.html
+Demo for MR view.
+- templates/index_xr_llama.html
+Demo for capturing an image from the camera stream and communicating with VLM.
+
+## app_stream.py and signaling_server.py
+This is for a demo to show video streaming. The following code works together.
+- templates/sender.html
+- templates/receiver.html
+
+## /static
+This is a folder uploaded to the Flask server.
+
+## /llama-proxy-manual/proxy.js
+This file listens on https://localhost:8443, when there is access on this port, it forwards to a local HTTP server running on http://127.0.0.1:8080. Because the llama server is running on HTTP, and WebXR needs HTTPS, but a mixture of HTTP and HTTPS is not allowed. So I needed to do this.
+
 <img width="906" alt="image" src="https://github.com/user-attachments/assets/3194fdc2-ba8d-4010-b6ca-38e364c305f1" />
-
-### app.py
-- This is a Flask-based web server that serves the following html files.
-#### templates/index_xr_llama_meshui_img.html
-- Demo for MR view.
-#### templates/index_xr_llama.html
-- Demo for capturing an image from the camera stream and communicating with VLM.
-
-### app_stream.py and signaling_server.py
-- This is for a demo to show video streaming. Following code works together
-#### templates/sender.html
-- Sending video
-#### templates/receiver.html
-- Receiving
-
-### /static
-- This is a folder uploaded to the Flask server.
-
-### /llama-proxy-manual/proxy.js
-- This file listens on https://localhost:8443, when there is access on this port, it forwards to a local HTTP server running on http://127.0.0.1:8080. Because the llama server is running on HTTP, and WebXR needs HTTPS, but a mixture of HTTP and HTTPS is not allowed. So I needed to do this.
+----
 
 # How to run
 In terminal 1
