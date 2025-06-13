@@ -5,12 +5,13 @@ app = Flask(__name__)
 
 @app.route("/") # https://161.3.140.22:5000/ # access receiver first before access sender
 def index():
-    
-    # return render_template("index_xr_llama_gui.html")
-    # return render_template("test.html")
-    return render_template("index_xr_llama_meshui_img.html") # for show 
-    # return render_template("index_xr_llama.html") # for show
-    
+
+    return render_template("receiver.html")
+
+
+@app.route("/sender") # https://161.3.140.22:5000/sender 
+def sender():
+    return render_template("sender.html")
 
 
 
@@ -24,4 +25,3 @@ if __name__ == "__main__":
     
     # not local
     app.run(host='0.0.0.0', port=5000, ssl_context=('cert.pem', 'key.pem')) 
-

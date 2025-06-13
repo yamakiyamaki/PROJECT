@@ -257,41 +257,12 @@
             }
             // set_cross();
 
-            //----------------------------------------------------------------------------
-            // Get video stream from workstation
-            //----------------------------------------------------------------------------
-            const ws = new WebSocket("wss://161.3.140.22:8443");
-            ws.onopen = () => ws.send(JSON.stringify({ role: "receiver" }));
 
-            const pc = new RTCPeerConnection();
-            const video = document.getElementById("videoFeed");
-
-            pc.ontrack = (event) => {
-                video.srcObject = event.streams[0];
-            };
-
-            pc.onicecandidate = e => {
-                if (e.candidate) {
-                    ws.send(JSON.stringify({ role: "receiver", candidate: e.candidate }));
-                }
-            };
-
-            ws.onmessage = async (event) => {
-                const data = JSON.parse(event.data);
-                if (data.type === "offer") {
-                    await pc.setRemoteDescription({ type: "offer", sdp: data.sdp });
-                    const answer = await pc.createAnswer();
-                    await pc.setLocalDescription(answer);
-                    ws.send(JSON.stringify({ role: "receiver", type: "answer", sdp: answer.sdp }));
-                } else if (data.candidate) {
-                    pc.addIceCandidate(new RTCIceCandidate(data.candidate));
-                }
-            };
 
             //----------------------------------------------------------------------------
             // Communicate with actual camera and VLM
             //----------------------------------------------------------------------------
-            // const video = document.getElementById('videoFeed');
+            const video = document.getElementById('videoFeed');
             const canvas = document.getElementById('canvas');
             const baseURL = "http://127.0.0.1:8080"; // address of VLM server but it will be converted to https
             const instructionText = "Explain this equation"; // default instruction
@@ -504,7 +475,7 @@
             mesh.scale.setScalar(2);
             group.add(mesh);
 
-            
+
 
             //----------------------------------------------------------------------------------
             // let isBButtonPressed = false;
@@ -528,7 +499,6 @@
                 if (!isBButtonPressed) {
 
                     requestAnimationFrame(animate);
-                    ThreeMeshUI.update();
                     renderer.render(scene, camera);
                 }
             }

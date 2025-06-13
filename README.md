@@ -47,6 +47,7 @@ Access here by HMD: https://161.3.140.22.5000
 In terminal 4
 ```
 cd ~/Documents/TY/PROJECT
+conda activate projectEnv
 python signaling_server.py
 ```
 
