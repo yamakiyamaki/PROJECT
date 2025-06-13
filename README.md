@@ -2,11 +2,12 @@
 
 ## app.py
 This is a Flask-based web server that serves the following html files.
-- templates/index_xr_llama_meshui_img.html
+
+#### templates/index_xr_llama_meshui_img.html
   
 Demo for MR view.
 
-- templates/index_xr_llama.html
+#### templates/index_xr_llama.html
 
 Demo for capturing an image from the camera stream and communicating with VLM.
 
