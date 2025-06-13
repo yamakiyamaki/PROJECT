@@ -26,6 +26,7 @@
 
 : This file listens on https://localhost:8443, when there is access on this port, it forwards to a local HTTP server running on http://127.0.0.1:8080. Because the llama server is running on HTTP, and WebXR needs HTTPS, but a mixture of HTTP and HTTPS is not allowed. So I needed to do this.
 
+## Planed system structure
 <img width="906" alt="image" src="https://github.com/user-attachments/assets/3194fdc2-ba8d-4010-b6ca-38e364c305f1" />
 ----
 
